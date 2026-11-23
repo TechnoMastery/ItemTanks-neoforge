@@ -4,6 +4,8 @@
   "package": "net.minheur.itemtanks.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AnvilScreenHandlerMixin",
+    "ShapedRecipeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
