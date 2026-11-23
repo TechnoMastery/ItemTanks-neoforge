@@ -9,7 +9,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -21,7 +21,7 @@ public final class ItemTanks {
     public static final String MODID = "itemtanks";
 
     // Directly reference a SLF4J logger
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
@@ -30,7 +30,7 @@ public final class ItemTanks {
         modEventBus.addListener(this::commonSetup);
 
         // Register ourselves for server and other game events we are interested in.
-        // NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
         // commands
         NeoForge.EVENT_BUS.addListener(TankCommands::register);
 
@@ -39,5 +39,14 @@ public final class ItemTanks {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+    }
+
+    @SubscribeEvent
+    public static void onServerStarted(@NonNull ServerStartedEvent event) {
+        TankHandler.loadTanks(event.getServer());
+    }
+    @SubscribeEvent
+    public static void onServerStopping(@NonNull ServerStoppingEvent event) {
+        TankHandler.unloadTanks(event.getServer());
     }
 }
