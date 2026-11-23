@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TankDataSaver extends SavedData {
+public final class TankDataSaver extends SavedData {
     private static final String KEY = "osc_tanks";
 
     private final Map<UUID, TankContent> tanks;
