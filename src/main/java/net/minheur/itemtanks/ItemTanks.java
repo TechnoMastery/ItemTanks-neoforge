@@ -50,8 +50,6 @@ public final class ItemTanks {
         modEventBus.addListener(this::commonSetup);
 
         // Register ourselves for server and other game events we are interested in.
-        // Note that this is necessary if and only if we want *this* class (ItemTanks) to respond directly to events.
-        // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
         // commands
         NeoForge.EVENT_BUS.addListener(TankCommands::register);
