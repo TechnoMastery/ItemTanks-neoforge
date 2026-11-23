@@ -1,8 +1,9 @@
-package net.minheur.itemtanks;
+package net.minheur.itemtanks.file;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
+import net.minheur.itemtanks.ItemTanks;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -24,7 +25,7 @@ public final class Config {
                     "minecraft:chain_command_block", "minecraft:repeat_command_block"),
             Config::validateItemName);
 
-    static final ModConfigSpec SPEC = BUILDER.build();
+    public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static Set<Item> items;
 
