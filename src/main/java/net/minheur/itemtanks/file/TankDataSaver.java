@@ -43,13 +43,6 @@ public class TankDataSaver extends SavedData {
         return Collections.unmodifiableMap(tanks);
     }
 
-    public static @NonNull TankDataSaver get(@NonNull ServerLevel level) {
-        return level.getServer()
-                .overworld()
-                .getDataStorage()
-                .computeIfAbsent(TYPE);
-    }
-
     public void setTank(UUID uuid, TankContent content) {
         tanks.put(uuid, content);
         setDirty();

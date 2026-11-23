@@ -30,7 +30,7 @@ public final class ItemTanks {
         modEventBus.addListener(this::commonSetup);
 
         // Register ourselves for server and other game events we are interested in.
-        NeoForge.EVENT_BUS.register(this);
+        // NeoForge.EVENT_BUS.register(this);
         // commands
         NeoForge.EVENT_BUS.addListener(TankCommands::register);
 
@@ -39,16 +39,5 @@ public final class ItemTanks {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-    }
-
-    // You can use SubscribeEvent and let the Event Bus discover methods to call
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
-        // todo: load tanks
-    }
-
-    @SubscribeEvent
-    public void onServerStopping(ServerStoppingEvent event) {
-        // todo: unload tanks
     }
 }
