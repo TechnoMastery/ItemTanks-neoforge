@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.UuidArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -23,7 +24,7 @@ import static net.minecraft.commands.Commands.literal;
 public final class TankCommands {
 
     private static final Supplier<SuggestionProvider<CommandSourceStack>> TANKS_SUGGESTIONS = () ->
-            ((context, builder) -> {
+            ((conComponent, builder) -> {
                 TankHandler.getTankState().getTanks().keySet().stream()
                         .map(UUID::toString)
                         .filter(id -> id.startsWith(builder.getRemaining()))
@@ -111,7 +112,7 @@ public final class TankCommands {
                                             long withdrawn = amountStoredLeft;
                                             giving.setCount((int) withdrawn);
 
-                                            if (!user.addItem(giving) && !giving.isEmpty()) user.drop(giving, true);
+                                            if (!user.addItem(giving)) user.drop(giving, true);
                                             amountStoredLeft = 0;
                                             OperationResults result = TankOperationHandler.decrementTank(tank, withdrawn);
                                             if (result == OperationResults.EMPTIED) {
@@ -122,26 +123,26 @@ public final class TankCommands {
 
                                             giving.setCount(maxStackSize);
 
-                                            if (!user.giveItemStack(giving)) user.dropItem(giving, true);
+                                            if (!user.addItem(giving)) user.drop(giving, true);
                                             amountStoredLeft -= maxStackSize;
                                             OperationResults result = TankOperationHandler.decrementTank(tank, maxStackSize);
                                             if (result == OperationResults.EMPTIED)
-                                                user.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+                                                user.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
                                         }
                                     }
 
-                                    user.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+                                    user.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
                                     return 1;
                                 }))
                                 .then(argument("amount", LongArgumentType.longArg()).executes(source -> {
-                                    if (!(source.getSource().getEntity() instanceof ServerPlayerEntity user))
+                                    if (!(source.getSource().getEntity() instanceof ServerPlayer user))
                                         return 0;
 
-                                    ItemStack tank = user.getMainHandStack();
+                                    ItemStack tank = user.getMainHandItem();
                                     if (!TankHandler.isTank(tank)) {
-                                        source.getSource().sendError(Text.literal("Please hold a tank in your main hand!"));
+                                        source.getSource().sendFailure(Component.literal("Please hold a tank in your main hand!"));
                                         return 0;
                                     }
 
@@ -151,51 +152,51 @@ public final class TankCommands {
                                     if (amountStored < amountToWithdraw) amountToWithdraw = amountStored;
 
                                     ItemStack contentRef = TankOperationHandler.getTankContent(tank);
-                                    int maxStackSize = contentRef.getMaxCount();
+                                    int maxStackSize = contentRef.getMaxStackSize();
 
                                     while (amountToWithdraw > 0) {
                                         ItemStack giving = contentRef.copy();
                                         long withdrawn = Math.min(amountToWithdraw, maxStackSize);
                                         giving.setCount((int) withdrawn);
 
-                                        if (!user.giveItemStack(giving)) user.dropItem(giving, true);
+                                        if (!user.addItem(giving)) user.drop(giving, true);
                                         amountToWithdraw -= withdrawn;
 
                                         OperationResults result = TankOperationHandler.decrementTank(tank, withdrawn);
                                         if (result == OperationResults.EMPTIED) {
-                                            user.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+                                            user.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                                             return 1;
                                         }
                                     }
 
                                     if (TankHandler.isTank(tank) && TankOperationHandler.getAmountStored(tank) <= 0)
-                                        user.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+                                        user.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                                     return 1;
                                 }))
                         )
 
                         .then(literal("details").executes(source -> {
-                            if (!(source.getSource().getEntity() instanceof ServerPlayerEntity user))
+                            if (!(source.getSource().getEntity() instanceof ServerPlayer user))
                                 return 0;
 
-                            ItemStack tank = user.getMainHandStack();
+                            ItemStack tank = user.getMainHandItem();
                             if (!TankHandler.isTank(tank)) {
-                                source.getSource().sendError(Text.literal("Please hold a tank in your main hand!"));
+                                source.getSource().sendFailure(Component.literal("Please hold a tank in your main hand!"));
                                 return 0;
                             }
 
-                            source.getSource().sendMessage(Text.literal("Stored item: ")
-                                    .append(TankOperationHandler.getTankContent(tank).toHoverableText()));
+                            source.getSource().sendSuccess(() -> Component.literal("Stored item: ")
+                                    .append(TankOperationHandler.getTankContent(tank).getHoverName()), false);
                             return 1;
                         }))
 
                         .then(literal("updateDisplay").executes(source -> {
-                            if (!(source.getSource().getEntity() instanceof ServerPlayerEntity user))
+                            if (!(source.getSource().getEntity() instanceof ServerPlayer user))
                                 return 0;
 
-                            ItemStack tank = user.getMainHandStack();
+                            ItemStack tank = user.getMainHandItem();
                             if (!TankHandler.isTank(tank)) {
-                                source.getSource().sendError(Text.literal("Please hold a tank in your main hand!"));
+                                source.getSource().sendFailure(Component.literal("Please hold a tank in your main hand!"));
                                 return 0;
                             }
 
@@ -204,19 +205,19 @@ public final class TankCommands {
                         }))
 
                         .then(literal("admin").requires(TankCommands::isOpped)
-                                .then(literal("adminGiveTank").then(argument("uuid", UuidArgumentType.uuid())
+                                .then(literal("adminGiveTank").then(argument("uuid", UuidArgument.uuid())
                                         .suggests(TANKS_SUGGESTIONS.get()).executes(source -> {
-                                            if (!(source.getSource().getEntity() instanceof ServerPlayerEntity user))
+                                            if (!(source.getSource().getEntity() instanceof ServerPlayer user))
                                                 return 0;
-                                            UUID targetTank = UuidArgumentType.getUuid(source, "uuid");
+                                            UUID targetTank = UuidArgument.getUuid(source, "uuid");
 
                                             if (!TankHandler.getTankState().getTanks().containsKey(targetTank)) {
-                                                source.getSource().sendError(Text.literal("This tank doesn't exists!"));
+                                                source.getSource().sendFailure(Component.literal("This tank doesn't exists!"));
                                                 return 0;
                                             }
 
                                             ItemStack tank = TankHandler.buildTankFromUUID(targetTank);
-                                            if (!user.giveItemStack(tank)) user.dropItem(tank, true);
+                                            if (!user.addItem(tank)) user.drop(tank, true);
                                             return 1;
                                         })
                                 ))
