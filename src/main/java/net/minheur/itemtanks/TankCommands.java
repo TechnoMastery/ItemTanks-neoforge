@@ -265,4 +265,52 @@ public final class TankCommands {
         return 1;
 
     }
+
+    private static int handleMaxedCreate(@NonNull CommandContext<CommandSourceStack> source) {
+        if (!(source.getSource().getEntity() instanceof ServerPlayer user)) return 0;
+        ItemStack mainHand = user.getMainHandItem();
+
+        if (IllegalTankItems.isItemForbidden(mainHand)) {
+            source.getSource().sendFailure(Component.literal("Can't store this item in a tank!"));
+            source.getSource().sendFailure(Component.literal("Try holding a correct item in your main hand!"));
+            return 0;
+        }
+
+        int maxAmount = IntegerArgumentType.getInteger(source, "maxAmount");
+        if (maxAmount <= 0) {
+            source.getSource().sendFailure(Component.literal("Can't store maximum amount of 0!"));
+            return 0;
+        }
+
+        maxAmount -= mainHand.getCount();
+
+        ItemStack tank = TankHandler.createTank(mainHand);
+        if (tank == null) {
+            source.getSource().sendFailure(Component.literal("Couldn't create tank!"));
+            return 0;
+        }
+
+        user.setItemInHand(InteractionHand.MAIN_HAND, tank);
+
+        if (maxAmount > 0) for (int i = 0; i < user.getInventory().getContainerSize(); i++) {
+            ItemStack target = user.getInventory().getItem(i);
+            final int amountStored = target.getCount();
+            maxAmount -= amountStored;
+            if (maxAmount < 0) break;
+            final int index = i;
+            if (!TankOperationHandler.safeIncrement(tank, target, (stack -> user.getInventory().setItem(index, stack))))
+                break;
+        }
+
+        ItemStack offHand = user.getOffhandItem();
+        TankOperationHandler.safeIncrement(tank, offHand, (stack) -> user.setItemInHand(InteractionHand.OFF_HAND, stack));
+
+        return 1;
+    }
+
+    private static boolean isOpped(CommandSourceStack source) {
+        if (!(source.getEntity() instanceof ServerPlayer player)) return false;
+        return source.getServer().getPlayerList()
+                .isOp(player.nameAndId());
+    }
 }
