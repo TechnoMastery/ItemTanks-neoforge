@@ -3,6 +3,7 @@ package net.minheur.itemtanks;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.UuidArgument;
@@ -10,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minheur.itemtanks.operations.IllegalTankItems;
 import net.minheur.itemtanks.operations.OperationResults;
 import net.minheur.itemtanks.operations.TankOperationHandler;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -230,5 +232,37 @@ public final class TankCommands {
                 .redirect(dispatcher.getRoot().getChild("tank").getChild("create")));
         dispatcher.register(literal("ta").redirect(dispatcher.getRoot().getChild("tank").getChild("add")));
         dispatcher.register(literal("tw").redirect(dispatcher.getRoot().getChild("tank").getChild("withdraw")));
+    }
+
+    private static int handleSimpleCreate(@NonNull CommandContext<CommandSourceStack> source) {
+        if (!(source.getSource().getEntity() instanceof ServerPlayer user)) return 0;
+        ItemStack mainHand = user.getMainHandItem();
+
+        if (IllegalTankItems.isItemForbidden(mainHand)) {
+            source.getSource().sendFailure(Component.literal("Can't store this item in a tank!"));
+            source.getSource().sendFailure(Component.literal("Try holding a correct item in your main hand!"));
+            return 0;
+        }
+
+        ItemStack tank = TankHandler.createTank(mainHand);
+        if (tank == null) {
+            source.getSource().sendFailure(Component.literal("Couldn't create tank!"));
+            return 0;
+        }
+
+        user.setItemInHand(InteractionHand.MAIN_HAND, tank);
+
+        for (int i = 0; i < user.getInventory().getContainerSize(); i++) {
+            ItemStack target = user.getInventory().getItem(i);
+            final int index = i;
+            if (!TankOperationHandler.safeIncrement(tank, target, (stack -> user.getInventory().setItem(index, stack))))
+                break;
+        }
+
+        ItemStack offHand = user.getOffhandItem();
+        TankOperationHandler.safeIncrement(tank, offHand, (stack) -> user.setItemInHand(InteractionHand.OFF_HAND, stack));
+
+        return 1;
+
     }
 }
