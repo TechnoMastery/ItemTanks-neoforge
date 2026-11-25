@@ -42,11 +42,11 @@ public final class ItemTanks {
     }
 
     @SubscribeEvent
-    public static void onServerStarted(@NonNull ServerStartedEvent event) {
+    public void onServerStarted(@NonNull ServerStartedEvent event) {
         TankHandler.loadTanks(event.getServer());
     }
     @SubscribeEvent
-    public static void onServerStopping(@NonNull ServerStoppingEvent event) {
+    public void onServerStopping(@NonNull ServerStoppingEvent event) {
         TankHandler.unloadTanks(event.getServer());
     }
 }
